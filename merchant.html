@@ -46,8 +46,8 @@
         const backendUrl = "https://scrabble-flatten-exerciser.ngrok-free.dev";
         let ws;
 
-        function connectWS() {  
-            ws = new WebSocket(`${backendUrl.replace('http', 'ws')}/ws/merchant`);
+        function connectWS() {
+            ws = new WebSocket(`wss://scrabble-flatten-exerciser.ngrok-free.dev/ws/merchant`);
             ws.onopen = () => {
                 const badge = document.getElementById("status");
                 badge.className = "bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold";

@@ -31,8 +31,8 @@
                     <thead>
                         <tr class="bg-gray-100 text-gray-600 text-sm uppercase">
                             <th class="p-3 border-b">วัน-เวลา</th>
-                            <th class="p-3 border-b">รายการอาหาร</th>
-                            <th class="p-3 border-b">จำนวน</th>
+                            <th class="p-3 border-b">ตำแหน่งคิว / โต๊ะ</th>
+                            <th class="p-3 border-b">รายการอาหารในกลุ่ม</th>
                             <th class="p-3 border-b text-right">ยอดรับสุทธิ</th>
                         </tr>
                     </thead>
@@ -83,15 +83,25 @@
                 let statusColor = order.status === 'pending' ? 'bg-yellow-500' : 'bg-blue-500';
                 let statusName = order.status === 'pending' ? 'รอแม่ค้ารับคำสั่ง' : 'กำลังปรุงอาหาร...';
                 
+                // แปลงข้อมูลรายการอาหารที่ส่งมาแบบ ||| ให้กลายเป็นบรรทัดสลวยๆ
+                let itemsListHtml = (order.items_raw || "").split('|||').map(item => {
+                    return `<li class="font-extrabold text-lg text-gray-800">${item}</li>`;
+                }).join('');
+
                 return `
                     <div class="bg-white rounded-2xl shadow-md border overflow-hidden flex flex-col justify-between">
                         <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
-                            <span class="font-bold text-gray-500 text-xs">คิวหมายเลข #${order.id}</span>
+                            <span class="font-bold text-gray-500 text-xs">คิวหลัก ID #${order.id}</span>
                             <span class="${statusColor} text-white px-3 py-1 rounded-full text-xs font-semibold">${statusName}</span>
                         </div>
                         <div class="p-5 flex-1">
-                            <h3 class="font-extrabold text-xl text-gray-800 mb-1">${order.menu_item} <span class="text-indigo-600">x${order.quantity}</span></h3>
-                            <p class="text-sm text-red-500 bg-red-50 p-2 rounded-lg font-medium mb-4">💡 หมายเหตุ: ${order.special_instructions || '-'}</p>
+                            <div class="mb-3 bg-indigo-50 text-indigo-900 px-3 py-2 rounded-xl inline-block font-black text-sm">
+                                📍 ${order.table_number}
+                            </div>
+                            <ul class="space-y-1 list-disc list-inside mb-3">
+                                ${itemsListHtml}
+                            </ul>
+                            <p class="text-sm text-red-500 bg-red-50 p-2 rounded-lg font-medium">💡 หมายเหตุ: ${order.notes || '-'}</p>
                         </div>
                         <div class="p-5 bg-gray-50 flex justify-between items-center">
                             <div>
@@ -122,8 +132,8 @@
                 return `
                     <tr class="hover:bg-gray-50">
                         <td class="p-3 border-b text-gray-500">${date} น.</td>
-                        <td class="p-3 border-b font-bold">${row.menu_item}</td>
-                        <td class="p-3 border-b">x${row.quantity}</td>
+                        <td class="p-3 border-b font-bold text-indigo-900">${row.table_number}</td>
+                        <td class="p-3 border-b font-medium text-gray-700">${row.items_summary}</td>
                         <td class="p-3 border-b text-right font-black text-green-600">฿${row.total_price}</td>
                     </tr>
                 `;

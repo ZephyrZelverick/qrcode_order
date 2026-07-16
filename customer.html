@@ -47,6 +47,12 @@
                 <h3 class="text-xl font-bold">🛒 รายการในตะกร้าของคุณ</h3>
                 <button onclick="closeCartModal()" class="text-gray-400 text-2xl font-bold">&times;</button>
             </div>
+            
+            <div class="mb-4 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
+                <label class="block text-gray-700 font-bold mb-1 text-sm">📍 ระบุหมายเลขโต๊ะ หรือ ชื่อคิวของคุณ:</label>
+                <input type="text" id="tableInput" placeholder="ตัวอย่าง: โต๊ะ 3, กลับบ้าน, คิวพี่เอ็กซ์" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white">
+            </div>
+
             <div id="cart-items" class="space-y-4 mb-6"></div>
             <button onclick="submitOrder()" class="w-full bg-green-500 text-white font-bold py-4 rounded-xl text-lg shadow-md hover:bg-green-600">
                 🚀 ยืนยันส่งคำสั่งซื้อเข้าระบบ
@@ -55,7 +61,6 @@
     </div>
 
     <script>
-        // ข้อมูลเมนูอาหารหลัก (แก้ไขราคา รูปภาพ หรือชื่อตรงนี้ได้ทันที)
         const foodMenu = [
             { id: 1, name: "ข้าวกะเพราหมูสับ", price: 50, img: "https://images.unsplash.com/photo-1626132647523-66f5bf380027?w=300" },
             { id: 2, name: "ข้าวผัดเมืองทอง", price: 55, img: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=300" },
@@ -63,7 +68,7 @@
         ];
 
         let cart = {};
-        const backendUrl = "https://scrabble-flatten-exerciser.ngrok-free.dev"; // เปลี่ยนเป็น IP คอมของคุณเวลารันจริง
+        const backendUrl = "https://scrabble-flatten-exerciser.ngrok-free.dev";
         let ws;
 
         function renderMenu() {
@@ -143,6 +148,7 @@
             
             let orderItems = [];
             let totalPrice = parseInt(document.getElementById("cart-total-price").innerText);
+            let tableInputVal = document.getElementById("tableInput").value.trim() || "ไม่ระบุโต๊ะ/คิว";
             
             for (let id in cart) {
                 let menu = foodMenu.find(m => m.id == id);
@@ -159,13 +165,16 @@
                 let res = await fetch(`${backendUrl}/api/order`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ items: orderItems, total_price: totalPrice })
+                    body: JSON.stringify({ 
+                        table_number: tableInputVal,
+                        total_price: totalPrice,
+                        items: orderItems 
+                    })
                 });
                 let data = await res.json();
                 if (data.status === "success") {
                     closeCartModal();
                     alert("ส่งคำสั่งซื้อสำเร็จคิวคุณเข้าระบบแล้ว!");
-                    // จำลองเชื่อมต่อกระบอกเสียงคิวแรกที่ส่ง
                     trackOrder(data.order_ids[0]);
                 }
             } catch (err) { alert("เกิดข้อผิดพลาดในการสั่งซื้อ"); }

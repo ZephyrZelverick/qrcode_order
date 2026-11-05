@@ -1,6 +1,255 @@
-<div class="mb-4">
-    <label class="block font-bold">ระบุเลขโต๊ะ/ชื่อคิว:</label>
-    <input type="text" id="tableInput" class="w-full border p-2 rounded" placeholder="เช่น โต๊ะ 5, กลับบ้าน">
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ร้านอาหารตามสั่ง</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fff9f0; margin: 0; padding: 20px; padding-bottom: 90px; color: #333; }
+        .container { max-width: 650px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 8px 24px rgba(255, 140, 0, 0.08); border: 1px solid #ffe0b2; }
+        .header-title { text-align: center; color: #ff7000; font-size: 24px; font-weight: 600; margin-bottom: 20px; }
+        
+        .queue-alert { background: #e8f5e9; border: 2px dashed #4caf50; padding: 20px; border-radius: 16px; text-align: center; margin-bottom: 20px; color: #2e7d32; }
+        .queue-number { font-size: 36px; font-weight: bold; color: #ff7000; margin: 5px 0; }
+        .order-summary-box { background: white; border: 1px solid #c8e6c9; border-radius: 10px; padding: 12px; margin-top: 10px; text-align: left; color: #333; font-size: 14px; }
+
+        .form-card { background-color: #fffdf5; border: 1px solid #ffe6b0; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        .field-label { font-weight: 500; color: #ff7000; margin-bottom: 8px; display: block; font-size: 15px; }
+        .input-text, .select-table, .textarea-note { width: 100%; padding: 12px 15px; border: 1.5px solid #ffd180; border-radius: 10px; box-sizing: border-box; font-size: 15px; font-family: 'Kanit', sans-serif; outline: none; background-color: #ffffff; }
+        
+        .order-type-group { display: flex; gap: 12px; margin: 15px 0; }
+        .radio-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; cursor: pointer; background-color: #ffffff; font-weight: 500; color: #666; }
+        .radio-btn.active { border-color: #ff7000; background-color: #fff3e0; color: #ff7000; font-weight: 600; }
+        
+        .section-header { font-size: 18px; font-weight: 600; color: #ff7000; border-left: 4px solid #ff7000; padding-left: 10px; margin: 20px 0 15px 0; }
+        .menu-card { background: #fffdf5; border: 1px solid #ffe6b0; border-radius: 12px; padding: 15px; margin-bottom: 12px; }
+        .menu-top { display: flex; justify-content: space-between; align-items: center; }
+        .menu-name { font-weight: 500; font-size: 16px; }
+        .menu-price { color: #888; font-size: 14px; }
+        
+        .qty-control { display: flex; align-items: center; gap: 8px; }
+        .btn-qty { width: 32px; height: 32px; border: 1px solid #ff7000; background: #fff3e0; color: #ff7000; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .qty-input { width: 40px; text-align: center; border: none; background: transparent; font-family: 'Kanit'; font-size: 16px; font-weight: bold; }
+
+        .egg-option { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ffe0b2; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #d97706; }
+        .egg-option input { accent-color: #ff7000; width: 16px; height: 16px; }
+        
+        .hint-box { background: #fff8e1; border-left: 4px solid #ffb300; padding: 10px 12px; border-radius: 6px; font-size: 13px; color: #b78103; margin-bottom: 8px; }
+        
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 2px solid #ffe0b2; padding: 12px 20px; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; max-width: 650px; margin: 0 auto; box-sizing: border-box; }
+        .total-price-text { font-size: 18px; font-weight: 600; color: #333; }
+        .total-price-num { font-size: 22px; font-weight: bold; color: #ff7000; }
+        .btn-submit { background-color: #ff7000; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: 'Kanit'; cursor: pointer; }
+
+        /* สไตล์กรอบเตือน Note สีแดง */
+        .alert-note-box { background-color: #ffebee; border: 2px dashed #ff1744; border-radius: 12px; padding: 12px; margin: 12px 0; text-align: center; }
+        .alert-title { color: #d50000; font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+        .alert-text { color: #b71c1c; font-size: 14px; font-weight: 500; }
+        .queue-highlight { background: #ffcdd2; padding: 2px 8px; border-radius: 4px; font-size: 16px; color: #b71c1c; font-weight: bold; border: 1px solid #ef9a9a; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-title">🔍 ร้านอาหารตามสั่ง</div>
+
+    {% if queue and last_order %}
+    <div class="queue-alert">
+        🎉 สั่งอาหารเรียบร้อยแล้ว!
+        <div>คิวของคุณคือ</div>
+        <div class="queue-number">คิวที่ #{{ queue }}</div>
+        
+        <div class="order-summary-box">
+            <div style="font-weight: bold; color: #2e7d32; border-bottom: 1px solid #c8e6c9; padding-bottom: 4px; margin-bottom: 6px;">📝 สรุปรายการที่สั่งซื้อ:</div>
+            <div><strong>ผู้สั่ง:</strong> คุณ {{ last_order.customer_name }} ({{ '🏠 ทานที่ร้าน โต๊ะ ' ~ last_order.table_number if last_order.order_type == 'dine_in' else '🛍️ กลับบ้าน' }})</div>
+            <div><strong>รายการ:</strong> {{ last_order.details }}</div>
+            {% if last_order.note %}
+            <div><strong>หมายเหตุ:</strong> {{ last_order.note }}</div>
+            {% endif %}
+            <div><strong>วิธีชำระ:</strong> {{ '📱 สแกนจ่าย (PromptPay)' if last_order.payment_method == 'promptpay' else '💵 เงินสด' }}</div>
+            <div><strong>สถานะชำระเงิน:</strong> 
+                {% if last_order.payment_status == 'paid' %}
+                <span style="color: #2e7d32; font-weight: bold;">✅ ชำระเงินเรียบร้อยแล้ว</span>
+                {% else %}
+                <span style="color: #d97706; font-weight: bold;">⏳ รอชำระเงิน</span>
+                {% endif %}
+            </div>
+            <div style="margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7000; text-align: right;">
+                ราคารวมสุทธิ: {{ last_order.total_price }} บาท
+            </div>
+
+            <!-- QR Code PromptPay ของร้านค้า + กล่องเตือนใส่ Note สีแดง -->
+            {% if last_order.payment_method == 'promptpay' and last_order.payment_status == 'pending' %}
+            <div style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #c8e6c9;">
+                <div style="font-weight: bold; color: #0d47a1; margin-bottom: 5px;">📲 สแกน QR Code เพื่อชำระเงิน {{ last_order.total_price }} บาท</div>
+                
+                <!-- กล่องเตือนสีแดงให้ระบุเลขคิวใน Note -->
+                <div class="alert-note-box">
+                    <div class="alert-title">⚠️ สำคัญมาก! กรุณาระบุในบันทึกช่วยจำ (Note)</div>
+                    <div class="alert-text">
+                        พิมพ์ว่า: <span class="queue-highlight">คิว #{{ queue }}</span>
+                    </div>
+                </div>
+
+                <div style="font-size: 13px; color: #555; margin-bottom: 8px;">ชื่อบัญชี: นาย รัชกฤช ดาวประกายมงคล</div>
+                <img src="{{ url_for('static', filename='promptpay_qr.jpg') }}" style="max-width: 240px; border: 1px solid #ddd; border-radius: 12px; padding: 5px; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            </div>
+            {% endif %}
+        </div>
+        
+        <small style="margin-top: 8px; display: block;">กรุณารอแม่ค้าเรียกคิวนะครับ</small>
+    </div>
+    {% endif %}
+
+    <form action="/submit-order" method="POST" id="order-form">
+        <div class="form-card">
+            <div>
+                <label class="field-label">ชื่อของคุณ:</label>
+                <input type="text" name="customer_name" class="input-text" placeholder="ระบุชื่อของคุณ" required>
+            </div>
+
+            <div class="order-type-group">
+                <label class="radio-btn active" id="label-dine-in">
+                    <input type="radio" name="order_type" value="dine_in" checked onclick="switchOrderType('dine_in')"> 🏠 ทานที่ร้าน
+                </label>
+                <label class="radio-btn" id="label-takeaway">
+                    <input type="radio" name="order_type" value="takeaway" onclick="switchOrderType('takeaway')"> 🛍️ กลับบ้าน
+                </label>
+            </div>
+
+            <div id="table_select_container">
+                <label class="field-label">เลือกโต๊ะที่นั่ง:</label>
+                <select name="table_number" id="table_number" class="select-table">
+                    {% for i in range(1, 11) %}
+                    <option value="{{ i }}">โต๊ะ {{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <label class="field-label">เลือกวิธีชำระเงิน:</label>
+                <div class="order-type-group" style="margin: 5px 0 0 0;">
+                    <label class="radio-btn active" id="label-cash">
+                        <input type="radio" name="payment_method" value="cash" checked onclick="switchPayment('cash')"> 💵 เงินสด
+                    </label>
+                    <label class="radio-btn" id="label-promptpay">
+                        <input type="radio" name="payment_method" value="promptpay" onclick="switchPayment('promptpay')"> 📱 สแกนจ่าย
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header">🍊 รายการเมนูอาหาร</div>
+        <div class="menu-list">
+            {% for item in items %}
+            <div class="menu-card">
+                <div class="menu-top">
+                    <div>
+                        <div class="menu-name">{{ item.name }}</div>
+                        <div class="menu-price"><span class="price-val" data-price="{{ item.price }}">{{ item.price }}</span> บาท</div>
+                    </div>
+                    
+                    <div class="qty-control">
+                        <button type="button" class="btn-qty" onclick="changeQty('item_{{ item.id }}', -1)">-</button>
+                        <input type="number" id="item_{{ item.id }}" name="item_{{ item.id }}" value="0" min="0" class="qty-input" readonly data-id="{{ item.id }}" data-price="{{ item.price }}">
+                        <button type="button" class="btn-qty" onclick="changeQty('item_{{ item.id }}', 1)">+</button>
+                    </div>
+                </div>
+                <div class="egg-option">
+                    <label style="cursor: pointer;">
+                        <input type="checkbox" name="egg_{{ item.id }}" id="egg_{{ item.id }}" value="1" onchange="calculateTotal()"> 🍳 เพิ่มไข่ดาว (+10 บาท)
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-card" style="margin-top: 20px;">
+            <label class="field-label">📝 รายรายละเอียดเพิ่มเติม / หมายเหตุ:</label>
+            <div class="hint-box">
+                💡 <strong>คำแนะนำ:</strong> กรุณาระบุรายละเอียดให้ชัดเจน เช่น <em>"เอากระเพราหมูสับ เผ็ดน้อย", "ข้าวผัดกุ้ง ไม่ใส่ผัก", "แยกน้ำซุป"</em>
+            </div>
+            <textarea name="note" class="textarea-note" rows="3" placeholder="ระบุรายละเอียดอาหารของคุณที่นี่..."></textarea>
+        </div>
+
+        <div class="bottom-bar">
+            <div>
+                <span class="total-price-text">ราคารวม:</span>
+                <span class="total-price-num" id="total-price-display">0</span> <span style="color: #ff7000; font-weight: bold;">บาท</span>
+            </div>
+            <button type="submit" class="btn-submit">ยืนยันการสั่งอาหาร</button>
+        </div>
+    </form>
 </div>
-let tableVal = document.getElementById("tableInput").value;
-body: JSON.stringify({ table_number: tableVal, total_price: totalPrice, items: orderItems })
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const socket = io();
+socket.on('order_updated_event', function(data) {
+    location.reload();
+});
+
+function changeQty(id, delta) {
+    const input = document.getElementById(id);
+    let val = parseInt(input.value) + delta;
+    if (val < 0) val = 0;
+    input.value = val;
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let grandTotal = 0;
+    const inputs = document.querySelectorAll('.qty-input');
+    
+    inputs.forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) {
+            const itemId = input.getAttribute('data-id');
+            const basePrice = parseFloat(input.getAttribute('data-price')) || 0;
+            const eggCheckbox = document.getElementById('egg_' + itemId);
+            const hasEgg = eggCheckbox && eggCheckbox.checked;
+            
+            const itemPrice = basePrice + (hasEgg ? 10 : 0);
+            grandTotal += itemPrice * qty;
+        }
+    });
+    
+    document.getElementById('total-price-display').innerText = grandTotal.toLocaleString();
+}
+
+function switchOrderType(type) {
+    const tableContainer = document.getElementById('table_select_container');
+    const tableSelect = document.getElementById('table_number');
+    const labelDineIn = document.getElementById('label-dine-in');
+    const labelTakeaway = document.getElementById('label-takeaway');
+
+    if (type === 'dine_in') {
+        tableContainer.style.display = 'block';
+        tableSelect.required = true;
+        labelDineIn.classList.add('active');
+        labelTakeaway.classList.remove('active');
+    } else {
+        tableContainer.style.display = 'none';
+        tableSelect.required = false;
+        tableSelect.value = '';
+        labelTakeaway.classList.add('active');
+        labelDineIn.classList.remove('active');
+    }
+}
+
+function switchPayment(method) {
+    const labelCash = document.getElementById('label-cash');
+    const labelPromptPay = document.getElementById('label-promptpay');
+
+    if (method === 'cash') {
+        labelCash.classList.add('active');
+        labelPromptPay.classList.remove('active');
+    } else {
+        labelPromptPay.classList.add('active');
+        labelCash.classList.remove('active');
+    }
+}
+</script>
+</body>
+</html>

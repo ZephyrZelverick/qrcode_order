@@ -1,3 +1,532 @@
-<h3 class="font-bold">${order.table_number}</h3>
-<p>${order.items_list}</p>
-<p class="text-red-500 text-sm">หมายเหตุ: ${order.notes}</p>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการร้านค้า (Real-time)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fff9f0; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); border: 1px solid #ffe0b2; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .header h2 { color: #ff7000; margin: 0; }
+        .header-btns { display: flex; gap: 10px; }
+        
+        .btn-summary { background: #2e7d32; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Kanit'; display: flex; align-items: center; gap: 6px; }
+        .btn-summary:hover { background: #1b5e20; }
+        .btn-reset { background: #ff4d4d; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Kanit'; }
+        
+        .card { background: #fffdf5; border: 1px solid #ffe6b0; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .section-title { font-weight: 600; color: #ff7000; border-left: 4px solid #ff7000; padding-left: 8px; margin-bottom: 15px; }
+        
+        .table-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .table-card { background: white; border: 1.5px solid #e0e0e0; padding: 12px; border-radius: 10px; text-align: center; position: relative; cursor: pointer; transition: 0.2s; }
+        .table-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .table-card.has-order { border-color: #ff7000; background-color: #fff3e0; }
+        .badge-notify { position: absolute; top: -8px; right: -8px; background: #ff4d4d; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; animation: pulse 1.5s infinite; }
+        
+        .queue-item { background: white; border: 1px solid #ffe0b2; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+        .queue-header { padding: 12px 15px; background: #fffdf5; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 500; }
+        .queue-header:hover { background: #fff3e0; }
+        .queue-body { padding: 15px; border-top: 1px solid #ffe0b2; display: none; background: white; }
+        .type-tag { padding: 3px 8px; border-radius: 6px; font-size: 12px; }
+        .tag-dine { background: #e3f2fd; color: #1976d2; }
+        .tag-take { background: #f3e5f5; color: #7b1fa2; }
+
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-serve { background: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; flex: 1; }
+        .btn-cancel { background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; flex: 1; }
+
+        .form-row { display: flex; gap: 10px; }
+        .form-row input { flex: 1; padding: 10px; border: 1px solid #ffd180; border-radius: 8px; font-family: 'Kanit'; }
+        .btn-add { background: #ff7000; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Kanit'; }
+        
+        .menu-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .menu-table th, .menu-table td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+        .btn-toggle { padding: 5px 10px; border-radius: 6px; border: none; cursor: pointer; font-family: 'Kanit'; font-weight: 500; }
+        .btn-on { background: #e8f5e9; color: #2e7d32; }
+        .btn-off { background: #ffebee; color: #c62828; }
+        .btn-del { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; }
+
+        /* Modal Popup Design */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .close-btn { cursor: pointer; font-size: 24px; font-weight: bold; color: #888; }
+
+        /* Summary Stat Boxes */
+        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 15px; }
+        .stat-box { background: #f9f9f9; padding: 12px; border-radius: 10px; border: 1px solid #e0e0e0; text-align: center; }
+        .stat-box.highlight { background: #e8f5e9; border-color: #a5d6a7; grid-column: span 2; }
+        .stat-box.cash { background: #fff8e1; border-color: #ffe082; }
+        .stat-box.scan { background: #e1f5fe; border-color: #81d4fa; }
+        .stat-title { font-size: 13px; color: #666; margin-bottom: 5px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #333; }
+        .stat-value.green { color: #2e7d32; font-size: 26px; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🔍 แผงจัดการออเดอร์ร้านอาหาร (Real-time)</h2>
+        <div class="header-btns">
+            <button type="button" class="btn-summary" onclick="openSummaryModal()">📊 สรุปยอดขายวันนี้</button>
+            <form action="/reset-queue" method="POST" onsubmit="return confirm('ยืนยันลบคิวทั้งหมดเพื่อเริ่ม #1 ใหม่?')">
+                <button type="submit" class="btn-reset">⚠️ รีเซ็ตเริ่มคิวใหม่ (#1)</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ผังโต๊ะอาหาร -->
+    <div class="card">
+        <div class="section-title">🪑 ผังโต๊ะอาหาร (กดที่โต๊ะเพื่อดูรายการและราคารวม)</div>
+        <div class="table-grid">
+            {% for t in range(1, 11) %}
+            {% set table_str = t|string %}
+            <div class="table-card {% if table_str in active_tables %}has-order{% endif %}" onclick="openTableModal('{{ table_str }}')">
+                {% if table_str in active_tables %}
+                <div class="badge-notify">🔔</div>
+                {% endif %}
+                <strong>โต๊ะ {{ t }}</strong><br>
+                <small style="color: {% if table_str in active_tables %}#ff7000{% else %}#888{% endif %}; font-weight: bold;">
+                    {% if table_str in active_tables %}
+                        ฿{{ table_totals[table_str] }} บาท
+                    {% else %}
+                        ว่าง
+                    {% endif %}
+                </small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- รายการคิวรอทำ -->
+    <div class="card">
+        <div class="section-title">📥 รายการคิวรอทำ</div>
+        {% for order in orders %}
+        <div class="queue-item">
+            <div class="queue-header" onclick="toggleDetails('q-{{ order.id }}')">
+                <div>
+                    <strong>คิว #{{ order.queue_number }}</strong> - คุณ {{ order.customer_name }}
+                    {% if order.order_type == 'dine_in' %}
+                    <span class="type-tag tag-dine">🏠 โต๊ะ {{ order.table_number }}</span>
+                    {% else %}
+                    <span class="type-tag tag-take">🛍️ กลับบ้าน</span>
+                    {% endif %}
+                </div>
+                <small style="color: #ff7000; font-weight: bold;">คลิกดูรายละเอียด (฿{{ order.total_price }} บาท) 🔽</small>
+            </div>
+            <div class="queue-body" id="q-{{ order.id }}">
+                <p><strong>รายการสั่ง:</strong> {{ order.details }}</p>
+                {% if order.note %}
+                <p style="color: #d97706; font-size: 14px;"><strong>หมายเหตุ:</strong> {{ order.note }}</p>
+                {% endif %}
+                
+                <p style="color: #ff7000; font-size: 16px; font-weight: bold; margin-bottom: 8px;">
+                    ราคารวมคิวนี้: {{ order.total_price }} บาท 
+                    <small style="font-weight: normal; color: #666;">({{ '📱 สแกนจ่าย (รัชกฤช 086-575-6354)' if order.payment_method == 'promptpay' else '💵 เงินสด' }})</small>
+                </p>
+
+                <!-- ปุ่มสลับสถานะชำระเงิน -->
+                <div style="margin-bottom: 12px;">
+                    {% if order.payment_status == 'paid' %}
+                        <button type="button" id="pay-btn-{{ order.id }}" onclick="togglePaymentAjax({{ order.id }})" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 5px 12px; border-radius: 6px; font-family: 'Kanit'; font-weight: bold; cursor: pointer;">
+                            ✅ ชำระเงินเรียบร้อยแล้ว (กดสลับ)
+                        </button>
+                    {% else %}
+                        <button type="button" id="pay-btn-{{ order.id }}" onclick="togglePaymentAjax({{ order.id }})" style="background: #fff3e0; color: #d97706; border: 1px solid #ffe0b2; padding: 5px 12px; border-radius: 6px; font-family: 'Kanit'; font-weight: bold; cursor: pointer;">
+                            ⏳ รอชำระเงิน (กดยืนยันชำระ)
+                        </button>
+                    {% endif %}
+                </div>
+                
+                <div class="action-btns">
+                    <form action="/complete-order/{{ order.id }}" method="POST" style="flex: 1;">
+                        <button type="submit" class="btn-serve">✅ เสิร์ฟเรียบร้อย</button>
+                    </form>
+                    <form action="/cancel-order/{{ order.id }}" method="POST" style="flex: 1;" onsubmit="return confirm('ยืนยันยกเลิกคิว #{{ order.queue_number }}?')">
+                        <button type="submit" class="btn-cancel">❌ ยกเลิกคิว</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align: center; color: #888;">ยังไม่มีคิวอาหารในขณะนี้</p>
+        {% endfor %}
+    </div>
+
+    <!-- ปุ่มกดเปิด/ปิด แสดงประวัติคิว -->
+    <div style="margin-bottom: 20px;">
+        <button type="button" onclick="toggleHistorySection()" style="width: 100%; background: #666; color: white; border: none; padding: 12px; border-radius: 10px; font-family: 'Kanit'; font-weight: 500; cursor: pointer;">
+            👁️ แสดง/ซ่อน ประวัติคิวทั้งหมด
+        </button>
+    </div>
+
+    <!-- ประวัติคิวที่เสิร์ฟแล้ว/ยกเลิกย้อนหลัง -->
+    <div class="card" id="history-section" style="display: none; background-color: #fafafa; border-color: #e0e0e0;">
+        <div class="section-title" style="color: #666; border-color: #666;">📜 ประวัติคิวย้อนหลัง</div>
+        {% for h_order in history_orders %}
+        <div class="queue-item" style="border-color: #e0e0e0; opacity: 0.85;">
+            <div class="queue-header" style="background: #f5f5f5;" onclick="toggleDetails('hq-{{ h_order.id }}')">
+                <div>
+                    <span style="{% if h_order.status == 'cancelled' %}text-decoration: line-through; color: #d32f2f;{% else %}text-decoration: line-through; color: #888;{% endif %}">
+                        <strong>คิว #{{ h_order.queue_number }}</strong> - คุณ {{ h_order.customer_name }}
+                    </span>
+                    {% if h_order.order_type == 'dine_in' %}
+                    <span class="type-tag tag-dine">🏠 โต๊ะ {{ h_order.table_number }}</span>
+                    {% else %}
+                    <span class="type-tag tag-take">🛍️ กลับบ้าน</span>
+                    {% endif %}
+                    
+                    {% if h_order.status == 'cancelled' %}
+                    <span style="color: #d32f2f; font-size: 12px; margin-left: 8px; font-weight: bold;">[❌ ยกเลิกคิวแล้ว]</span>
+                    {% else %}
+                    <span style="color: #4caf50; font-size: 12px; margin-left: 8px;">[{{ 'เสิร์ฟแล้ว' if h_order.status == 'served' else 'เคลียร์โต๊ะแล้ว' }}]</span>
+                    {% endif %}
+                </div>
+                <small style="color: #666;">คลิกเพื่อดูประวัติ (฿{{ h_order.total_price }} บาท) 🔽</small>
+            </div>
+            <div class="queue-body" id="hq-{{ h_order.id }}">
+                <p><strong>รายการสั่ง:</strong> {{ h_order.details }}</p>
+                {% if h_order.note %}
+                <p style="color: #888; font-size: 14px;"><strong>หมายเหตุ:</strong> {{ h_order.note }}</p>
+                {% endif %}
+                <p style="color: #555; font-size: 15px; font-weight: bold; margin-bottom: 4px;">
+                    ราคารวม: {{ h_order.total_price }} บาท 
+                </p>
+                <!-- แสดงรูปแบบการชำระเงิน และ สถานะการชำระเงิน ในประวัติคิว -->
+                <p style="font-size: 14px; margin-top: 0;">
+                    <strong>การชำระเงิน:</strong> 
+                    {% if h_order.payment_method == 'promptpay' %}
+                        <span style="color: #0288d1; font-weight: 500;">📱 สแกนจ่าย (พร้อมเพย์)</span>
+                    {% else %}
+                        <span style="color: #f57c00; font-weight: 500;">💵 เงินสด</span>
+                    {% endif %}
+                    - 
+                    {% if h_order.payment_status == 'paid' %}
+                        <span style="color: #2e7d32; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 4px;">✅ ชำระแล้ว</span>
+                    {% else %}
+                        <span style="color: #c62828; font-weight: bold; background: #ffebee; padding: 2px 8px; border-radius: 4px;">⏳ ยังไม่ชำระ</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align: center; color: #aaa;">ยังไม่มีประวัติคิว</p>
+        {% endfor %}
+    </div>
+
+    <!-- เพิ่มรายการอาหารใหม่ -->
+    <div class="card">
+        <div class="section-title">➕ เพิ่มรายการอาหารใหม่</div>
+        <form action="/add-item" method="POST" class="form-row">
+            <input type="text" name="name" placeholder="ชื่อเมนูอาหาร" required>
+            <input type="number" step="0.01" name="price" placeholder="ราคา (บาท)" required style="max-width: 150px;">
+            <button type="submit" class="btn-add">เพิ่มเมนู</button>
+        </form>
+    </div>
+
+    <!-- จัดการเมนูที่มีในร้าน -->
+    <div class="card">
+        <div class="section-title">📜 จัดการเมนูอาหารในร้าน</div>
+        <table class="menu-table">
+            <thead>
+                <tr>
+                    <th>ชื่อเมนู</th>
+                    <th>ราคา</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.price }} บาท</td>
+                    <td>
+                        <form action="/toggle-item/{{ item.id }}" method="POST" style="display:inline;">
+                            {% if item.is_available %}
+                            <button type="submit" class="btn-toggle btn-on">🟢 มีขาย</button>
+                            {% else %}
+                            <button type="submit" class="btn-toggle btn-off">🔴 สินค้าหมด</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/delete-item/{{ item.id }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn-del" onclick="return confirm('ยืนยันลบเมนูนี้?')">ลบ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #888;">ยังไม่มีเมนูในระบบ</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal สรุปยอดขายประจำวัน -->
+<div class="modal" id="summary-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin: 0; color: #2e7d32;">📊 รายงานสรุปยอดขาย (ย้อนหลัง)</h3>
+            <span class="close-btn" onclick="closeSummaryModal()">&times;</span>
+        </div>
+
+        {% set total_revenue = namespace(val=0) %}
+        {% set cash_revenue = namespace(val=0) %}
+        {% set scan_revenue = namespace(val=0) %}
+        {% set success_queues = namespace(val=0) %}
+        {% set cancelled_queues = namespace(val=0) %}
+        {% set dine_in_count = namespace(val=0) %}
+        {% set takeaway_count = namespace(val=0) %}
+
+        {% for h in history_orders %}
+            {% if h.status == 'cancelled' %}
+                {% set cancelled_queues.val = cancelled_queues.val + 1 %}
+            {% else %}
+                {% set total_revenue.val = total_revenue.val + h.total_price %}
+                {% set success_queues.val = success_queues.val + 1 %}
+                
+                {% if h.payment_method == 'promptpay' %}
+                    {% set scan_revenue.val = scan_revenue.val + h.total_price %}
+                {% else %}
+                    {% set cash_revenue.val = cash_revenue.val + h.total_price %}
+                {% endif %}
+
+                {% if h.order_type == 'dine_in' %}
+                    {% set dine_in_count.val = dine_in_count.val + 1 %}
+                {% else %}
+                    {% set takeaway_count.val = takeaway_count.val + 1 %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        <div class="summary-grid">
+            <!-- ยอดรวมทั้งสองช่องทาง -->
+            <div class="stat-box highlight">
+                <div class="stat-title">💰 ยอดขายสุทธิรวมทั้งหมด (เงินสด + สแกนจ่าย)</div>
+                <div class="stat-value green">฿{{ "%.2f"|format(total_revenue.val) }} บาท</div>
+            </div>
+
+            <!-- แยกประเภทการชำระเงิน -->
+            <div class="stat-box cash">
+                <div class="stat-title">💵 รับเป็นเงินสด</div>
+                <div class="stat-value" style="color: #d97706;">฿{{ "%.2f"|format(cash_revenue.val) }} บาท</div>
+            </div>
+            <div class="stat-box scan">
+                <div class="stat-title">📱 รับแบบสแกนจ่าย (พร้อมเพย์)</div>
+                <div class="stat-value" style="color: #0288d1;">฿{{ "%.2f"|format(scan_revenue.val) }} บาท</div>
+            </div>
+
+            <!-- สถิติคิว -->
+            <div class="stat-box">
+                <div class="stat-title">✅ คิวที่ขายสำเร็จ</div>
+                <div class="stat-value" style="color: #2e7d32;">{{ success_queues.val }} คิว</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title">❌ คิวที่ถูกยกเลิก</div>
+                <div class="stat-value" style="color: #d32f2f;">{{ cancelled_queues.val }} คิว</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title">🏠 ทานที่ร้าน</div>
+                <div class="stat-value" style="color: #1976d2;">{{ dine_in_count.val }} คิว</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-title">🛍️ สั่งกลับบ้าน</div>
+                <div class="stat-value" style="color: #7b1fa2;">{{ takeaway_count.val }} คิว</div>
+            </div>
+        </div>
+
+        <div style="background: #fffdf5; border: 1px solid #ffe6b0; padding: 15px; border-radius: 10px;">
+            <div style="font-weight: bold; color: #ff7000; margin-bottom: 8px;">🍽️ รายการออเดอร์ทั้งหมดในระบบ:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #555;">
+                {% for h in history_orders %}
+                <li style="margin-bottom: 6px;">
+                    <strong>คิว #{{ h.queue_number }}:</strong> {{ h.details }} ({{ h.total_price }} บาท)
+                    <br>
+                    <small style="color: #777;">
+                        ชำระโดย: 
+                        {% if h.payment_method == 'promptpay' %}
+                            <span style="color: #0288d1;">📱 สแกนจ่าย</span>
+                        {% else %}
+                            <span style="color: #d97706;">💵 เงินสด</span>
+                        {% endif %}
+                        | สถานะ: 
+                        {% if h.status == 'cancelled' %}
+                            <span style="color: #d32f2f; font-weight: bold;">[ยกเลิกคิว]</span>
+                        {% elif h.payment_status == 'paid' %}
+                            <span style="color: #2e7d32; font-weight: bold;">[ชำระแล้ว]</span>
+                        {% else %}
+                            <span style="color: #c62828; font-weight: bold;">[ยังไม่ชำระ]</span>
+                        {% endif %}
+                    </small>
+                </li>
+                {% else %}
+                <li style="list-style-type: none; color: #aaa; text-align: center;">ยังไม่มีประวัติยอดขาย</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modal รายโต๊ะ -->
+{% for t in range(1, 11) %}
+{% set table_str = t|string %}
+<div class="modal" id="table-modal-{{ table_str }}">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin: 0; color: #ff7000;">🏠 รายการอาหาร โต๊ะ {{ t }}</h3>
+            <span class="close-btn" onclick="closeTableModal('{{ table_str }}')">&times;</span>
+        </div>
+        
+        {% if table_str in active_tables %}
+            <div style="margin-bottom: 15px;">
+                {% for ord in table_orders[table_str] %}
+                <div style="border-bottom: 1px dashed #eee; padding-bottom: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong>คิว #{{ ord.queue_number }} - คุณ {{ ord.customer_name }}</strong>
+                        <span style="color: #ff7000; font-weight: bold;">฿{{ ord.total_price }}</span>
+                    </div>
+                    <div style="color: #555; font-size: 14px; margin-top: 4px;">{{ ord.details }}</div>
+                    {% if ord.note %}
+                    <div style="color: #d97706; font-size: 13px;">หมายเหตุ: {{ ord.note }}</div>
+                    {% endif %}
+                    <div style="font-size: 12px; color: {% if ord.status == 'pending' %}#ff7000{% else %}#4caf50{% endif %}; font-weight: bold; margin-top: 4px;">
+                        สถานะ: {{ '⏳ กำลังรอทำ' if ord.status == 'pending' else '✅ เสิร์ฟแล้ว' }}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <div style="background: #fff3e0; border: 1px solid #ffe0b2; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <span style="font-weight: bold; font-size: 16px;">💰 ราคารวมทั้งหมดของโต๊ะ {{ t }}:</span>
+                    <span style="font-size: 20px; font-weight: bold; color: #ff7000;">฿{{ table_totals[table_str] }} บาท</span>
+                </div>
+            </div>
+
+            <form action="/clear-table/{{ table_str }}" method="POST" onsubmit="return confirm('ยืนยันเคลียร์โต๊ะ {{ t }}?')">
+                <button type="submit" style="width: 100%; background: #ff4d4d; color: white; border: none; padding: 10px; border-radius: 8px; font-family: 'Kanit'; font-weight: bold; cursor: pointer;">
+                    🧹 เคลียร์โต๊ะ (ลูกค้าเช็คบิล/ลุกแล้ว)
+                </button>
+            </form>
+        {% else %}
+            <p style="text-align: center; color: #888; margin: 20px 0;">โต๊ะนี้ยังไม่มีรายการสั่งอาหาร (โต๊ะว่าง)</p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const socket = io();
+
+// คืนค่าสถานะคิวที่เคยกางไว้ ให้กางต่อหลังจากโหลดหน้าใหม่
+window.addEventListener('DOMContentLoaded', () => {
+    const openQueues = JSON.parse(localStorage.getItem('openQueues') || '[]');
+    openQueues.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = "block";
+        }
+    });
+});
+
+socket.on('new_order_event', function(data) {
+    playNotificationSound();
+    setTimeout(() => {
+        location.reload();
+    }, 300);
+});
+
+socket.on('order_updated_event', function(data) {
+    location.reload();
+});
+
+function playNotificationSound() {
+    let audio = new Audio('https://media.geeksforgeeks.org/wp-content/uploads/20190529122828/bs.mp3');
+    audio.play().catch(e => console.log('Audio error:', e));
+}
+
+function toggleDetails(id) {
+    const el = document.getElementById(id);
+    let openQueues = JSON.parse(localStorage.getItem('openQueues') || '[]');
+    
+    if (el.style.display === "block") {
+        el.style.display = "none";
+        openQueues = openQueues.filter(item => item !== id);
+    } else {
+        el.style.display = "block";
+        if (!openQueues.includes(id)) {
+            openQueues.push(id);
+        }
+    }
+    localStorage.setItem('openQueues', JSON.stringify(openQueues));
+}
+
+function toggleHistorySection() {
+    const sec = document.getElementById('history-section');
+    sec.style.display = (sec.style.display === "none") ? "block" : "none";
+}
+
+function togglePaymentAjax(orderId) {
+    const queueId = 'q-' + orderId;
+    let openQueues = JSON.parse(localStorage.getItem('openQueues') || '[]');
+    if (!openQueues.includes(queueId)) {
+        openQueues.push(queueId);
+        localStorage.setItem('openQueues', JSON.stringify(openQueues));
+    }
+
+    fetch('/toggle-payment/' + orderId, {
+        method: 'POST'
+    })
+    .then(response => {
+        if (response.ok) {
+            const btn = document.getElementById('pay-btn-' + orderId);
+            if (btn) {
+                if (btn.innerText.includes('รอชำระเงิน')) {
+                    btn.innerText = '✅ ชำระเงินเรียบร้อยแล้ว (กดสลับ)';
+                    btn.style.background = '#e8f5e9';
+                    btn.style.color = '#2e7d32';
+                    btn.style.borderColor = '#a5d6a7';
+                } else {
+                    btn.innerText = '⏳ รอชำระเงิน (กดยืนยันชำระ)';
+                    btn.style.background = '#fff3e0';
+                    btn.style.color = '#d97706';
+                    btn.style.borderColor = '#ffe0b2';
+                }
+            }
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function openTableModal(tableNum) {
+    document.getElementById('table-modal-' + tableNum).style.display = 'flex';
+}
+
+function closeTableModal(tableNum) {
+    document.getElementById('table-modal-' + tableNum).style.display = 'none';
+}
+
+function openSummaryModal() {
+    document.getElementById('summary-modal').style.display = 'flex';
+}
+
+function closeSummaryModal() {
+    document.getElementById('summary-modal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = "none";
+    }
+}
+</script>
+</body>
+</html>
